@@ -9,7 +9,7 @@ IP_PREFIX=$6
 SEGMENT_IP_BASE=$7
 
 #Print what we received as arguements
-echo "$*"
+echo "$0 $*"
 
 # Enable IP<->hostname mapping
 echo -e "\n${IPADDR} ${HOSTNAME}" | tee --append /etc/hosts
