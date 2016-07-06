@@ -8,6 +8,9 @@ SSHPRIVKEY=$5
 IP_PREFIX=$6
 SEGMENT_IP_BASE=$7
 
+#Print what we received as arguements
+echo "$*"
+
 # Enable IP<->hostname mapping
 echo -e "\n${IPADDR} ${HOSTNAME}" | tee --append /etc/hosts
 
@@ -62,7 +65,7 @@ filter   = sshd
 action   = iptables[name=SSH, port=ssh, protocol=tcp]
 logpath  = /var/log/secure
 maxretry = 5
-" >> /etc/fail2ban/jail.local 
+" >> /etc/fail2ban/jail.local
 
 service fail2ban start
 chkconfig fail2ban on
@@ -191,7 +194,7 @@ EOF
 fi
 
 # Fix datadir ownership
-chown -Rf gpadmin:gpadmin /data* 
+chown -Rf gpadmin:gpadmin /data*
 
 # Set kernel parameters
 
