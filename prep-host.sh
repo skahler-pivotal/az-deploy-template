@@ -73,19 +73,57 @@ chkconfig fail2ban on
 yum install xfsprogs -y
 
 if [[ "${HOSTNAME}" == *"mdw"* ]] ; then
-    # Stage the GPDB appliance tarball
-    curl -o /home/gpadmin/greenplum-db-appliance-4.3.8.1-build-1-RHEL5-x86_64.bin  -d "" -H "Authorization: Token ${APITOKEN}" -L https://network.pivotal.io/api/v2/products/pivotal-gpdb/releases/1683/product_files/4369/download
+
+    # Work out of the gpadmin home directory
+
+    cd /home/gpadmin
+
+    # Stage the GPDB tarball
+
+    curl -o /home/gpadmin/greenplum-db.zip  -d "" -H "Authorization: Token ${APITOKEN}" -L https://network.pivotal.io/api/v2/products/pivotal-gpdb/releases/1683/product_files/4367/download
+
+    unzip /home/gpadmin/greenplum-db.zip
+
+    chown gpadmin:gpadmin /home/gpadmin/greenplum-db-*.bin
+    chmod u+x /home/gpadmin/greenplum-db-*.bin
+
+    sed -i 's/more <</cat <</g' /home/gpadmin/greenplum-db-*.bin
+    sed -i 's/agreed=/agreed=1/' /home/gpadmin/greenplum-db-*.bin
+    sed -i 's/pathVerification=/pathVerification=1/' /home/gpadmin/greenplum-db-*.bin
+    sed -i '/defaultInstallPath=/a installPath=${defaultInstallPath}' /home/gpadmin/greenplum-db-*.bin
+
+    for GPDBINSTALLBINARY in /home/gpadmin/greenplum-db-*.bin
+    do
+      sudo $GPDBINSTALLBINARY
+    done
 
     # Stage the GPCC tarball
-    curl -o /home/gpadmin/greenplum-cc-web-2.1.0-build-36-RHEL5-x86_64.zip -d "" -H "Authorization: Token ${APITOKEN}" -L https://network.pivotal.io/api/v2/products/pivotal-gpdb/releases/1748/product_files/4517/download
 
-    chown gpadmin:gpadmin /home/gpadmin/greenplum-db-appliance-*
-    chmod u+x /home/gpadmin/greenplum-db-appliance-*
+    curl -o /home/gpadmin/greenplum-cc-web.zip -d "" -H "Authorization: Token ${APITOKEN}" -L https://network.pivotal.io/api/v2/products/pivotal-gpdb/releases/1683/product_files/5097/download
 
-    # Create a cluster deploy hostfile
-    python -c "print 'mdw' ; print '\n'.join(['sdw{0}'.format(n+1) for n in range(${SEGMENTS})])" > /home/gpadmin/hostfile
+    /usr/bin/unzip /home/gpadmin/greenplum-cc-web-*.zip
 
-    chown gpadmin:gpadmin /home/gpadmin/hostfile
+    chown gpadmin:gpadmin /home/gpadmin/greenplum-cc-web-*
+    chmod u+x /home/gpadmin/greenplum-cc-web-*
+
+    sed -i 's/more <</cat <</g' /home/gpadmin/greenplum-cc-web-*.bin
+    sed -i 's/agreed=/agreed=1/' /home/gpadmin/greenplum-cc-web-*.bin
+    sed -i 's/pathVerification=/pathVerification=1/' /home/gpadmin/greenplum-cc-web-*.bin
+    sed -i '/defaultInstallPath=/a installPath=${defaultInstallPath}' /home/gpadmin/greenplum-cc-web-*.bin
+    
+
+    for GPCCINSTALLBINARY in /home/gpadmin/greenplum-cc-web-*.bin
+    do
+      sudo $GPDBINSTALLBINARY
+    done
+
+    sudo chown -R gpadmin:gpadmin /usr/local/greenplum*
+
+    # Create a cluster deploy hostfiles
+    python -c "print 'mdw' ; print '\n'.join(['sdw{0}'.format(n+1) for n in range(${SEGMENTS})])" > /home/gpadmin/hosts.all
+    python -c "print '\n'.join(['sdw{0}'.format(n+1) for n in range(${SEGMENTS})])" > /home/gpadmin/hosts.segs
+
+    chown gpadmin:gpadmin /home/gpadmin/hosts.*
 
     # Update system host file with segment hosts
     python -c "print '\n'.join(['10.4.0.{0} {1}'.format(ip, 'sdw{0}'.format(n+1)) for n, ip in enumerate(range(${SEGMENT_IP_BASE}, ${SEGMENT_IP_BASE} + ${SEGMENTS}))])" >> /etc/hosts
@@ -104,8 +142,6 @@ if [[ "${HOSTNAME}" == *"mdw"* ]] ; then
     mount /data
 
     mkdir /data/master
-
-EOF
 
     # Get some Anaconda stuff on master
     wget -O /tmp/Anaconda2-4.0.0-Linux-x86_64.sh http://repo.continuum.io/archive/Anaconda2-4.0.0-Linux-x86_64.sh
@@ -188,8 +224,6 @@ else
     mount -a
 
     mkdir /data{1..$VOLUMES}/primary
-
-EOF
 
 fi
 
